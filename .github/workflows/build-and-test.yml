@@ -8,18 +8,28 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-Ctarget-feature=+aes,+ssse3"
+  RUSTFLAGS: ${{ matrix.platform.rustflags }}
   RUST_LOG: "trace"
 
 jobs:
   buid-test-check:
     strategy:
       matrix:
-        platform:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
-    runs-on: ${{ matrix.platform }}
+        platform: [
+            {
+              os: "ubuntu-latest",
+              rustflags: "-Ctarget-feature=+aes,+ssse3",
+            },
+            {
+              os: "windows-latest",
+              rustflags: "-Ctarget-feature=+aes,+ssse3",
+            },
+            {
+              os: "macos-latest",
+              rustflags: "-Ctarget-feature=+aes",
+            },
+        ]
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v2
@@ -54,10 +64,18 @@ jobs:
       - name: Clippy Check
         uses: actions-rs/clippy-check@v1
         with:
-          name: clippy-${{ matrix.platform }}
+          name: clippy-${{ matrix.platform.os }}
           token: ${{ secrets.GITHUB_TOKEN }}
           args: |
             --verbose --features "local-http-rustls local-redir local-dns dns-over-tls dns-over-https stream-cipher" -- -Z macro-backtrace
             -W clippy::absurd_extreme_comparisons
             -W clippy::erasing_op
             -A clippy::collapsible_else_if
+
+      - name: build AppleSilicon
+        if: runner.os == 'macOS'
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target aarch64-apple-darwin

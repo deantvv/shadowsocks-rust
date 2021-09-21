@@ -1,33 +1,82 @@
 name: Build Releases
 on:
   push:
-    tags:
-      - v*
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build-cross:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform.os }}
     env:
       RUST_BACKTRACE: full
     strategy:
       matrix:
-        target:
-          - i686-unknown-linux-musl
-          - x86_64-pc-windows-gnu
-          - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
-          - arm-unknown-linux-gnueabi
-          - arm-unknown-linux-gnueabihf
-          - arm-unknown-linux-musleabi
-          - arm-unknown-linux-musleabihf
-          - aarch64-unknown-linux-gnu
-          - aarch64-unknown-linux-musl
-          - mips-unknown-linux-musl
-          - mips-unknown-linux-gnu
-          - mipsel-unknown-linux-musl
+        platform: [
+            {
+              os: "ubuntu-latest",
+              rust-target: "i686-unknown-linux-musl",
+            },
+            {
+              os: "windows-latest",
+              rust-target: "x86_64-pc-windows-gnu",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "x86_64-unknown-linux-gnu",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "arm-unknown-linux-gnueabi",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "arm-unknown-linux-gnueabihf",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "arm-unknown-linux-musleabi",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "arm-unknown-linux-musleabihf",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "aarch64-unknown-linux-gnu",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "aarch64-unknown-linux-musl",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "mips-unknown-linux-musl",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "mips-unknown-linux-gnu",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "mipsel-unknown-linux-musl",
+            },
+            {
+              os: "ubuntu-latest",
+              rust-target: "mipsel-unknown-linux-musl",
+            },
+            {
+              os: "macos-latest",
+              rust-target: "x86_64-apple-darwin",
+            },
+            {
+              os: "macos-latest",
+              rust-target: "aarch64-apple-darwin",
+            },
+        ]
 
     steps:
       - uses: actions/checkout@v2
@@ -35,10 +84,10 @@ jobs:
       - name: Install cross
         run: cargo install cross
 
-      - name: Build ${{ matrix.target }}
+      - name: Build ${{ matrix.platform.rust-target }}
         timeout-minutes: 120
         run: |
-          compile_target=${{ matrix.target }}
+          compile_target=${{ matrix.platfrom.rust-target }}
 
           if [[ "$compile_target" == *"-linux-"* || "$compile_target" == *"-apple-"* ]]; then
             compile_features="-f local-redir -f local-tun"
@@ -49,7 +98,7 @@ jobs:
           #fi
 
           cd build
-          ./build-release -t ${{ matrix.target }} $compile_features $compile_compress
+          ./build-release -t ${{ matrix.platform.rust-target }} $compile_features $compile_compress
 
       - name: Upload Github Assets
         uses: softprops/action-gh-release@v1
